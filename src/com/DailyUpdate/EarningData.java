@@ -8,6 +8,11 @@ public class EarningData {
 	public Date earningDate;
 	public double cons;
 	
+	public EarningData()
+	{
+		
+	}
+	
 	public EarningData(String quarter, Date earningData, double cons)
 	{
 		this.quarter = quarter;

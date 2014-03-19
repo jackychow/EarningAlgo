@@ -40,18 +40,25 @@ public class DailyUpdater {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		//ZacksEarningDataPuller puller = new ZacksEarningDataPuller();
+		//EarningData earning = null;
 		//EarningData earning = puller.pullEarningsForSymbol("TSLA");
 		DailyUpdater updater = new DailyUpdater();
 		updater.runUpdate();
-
-
+		
 		/*
+		EarningData earning = null;
+		String symbol = "ARG";
+		MktWatchDataPuller mktWatchPuller = new MktWatchDataPuller();		
+		ZacksEarningDataPuller zacksPuller = new ZacksEarningDataPuller();		
+		earning = mktWatchPuller.pullEarningsForSymbol(symbol, earning);
+		earning = zacksPuller.pullEarningsForSymbol(symbol, earning);
+		
+
+
 		System.out.println(dateFormatter.format(earning.earningDate));
 		System.out.println(earning.cons);
 		System.out.println(earning.quarter);
 		*/
-		
 	}
 
 	public void runUpdate()
@@ -69,7 +76,8 @@ public class DailyUpdater {
 		lists.add("DOW.csv");
 		lists.add("NASDAQ_TOP200.csv");		
 		File listRoot = new File(ListRoot);	
-		ZacksEarningDataPuller puller = new ZacksEarningDataPuller();
+		MktWatchDataPuller mktWatchPuller = new MktWatchDataPuller();
+		ZacksEarningDataPuller zacksPuller = new ZacksEarningDataPuller();
 
 		try {
 			FileWriter fo = new FileWriter(getEarningPullOutputPath());
@@ -89,10 +97,14 @@ public class DailyUpdater {
 						if(processed_symbols.contains(symbol))
 							continue;
 						
-						logger.info("--------- Updating Earning Est. for ["+symbol+"]------------------");					
-						EarningData earning = puller.pullEarningsForSymbol(symbol);
+						logger.info("--------- Updating Earning Est. for ["+symbol+"]------------------");		
+						EarningData earning = new EarningData();
+						boolean success = true;
+						success = success && mktWatchPuller.pullEarningsForSymbol(symbol, earning);
+						if(success)
+							success = success && zacksPuller.pullEarningsForSymbol(symbol, earning);
 						
-						if(earning != null){
+						if(success){
 							pw.println(symbol+","+dateFormatter.format(earning.earningDate) + ","+earning.quarter+","+earning.cons);
 							pw.flush();
 						}else{
@@ -162,25 +174,28 @@ public class DailyUpdater {
 			int symbol_id = DatabaseAccessor.getInstance().getIdForSymbol(symbol);
 			PreparedStatement st 
 			= DatabaseAccessor.getInstance().prepareStatement(
-					"SELECT cons, time " +
+					"SELECT cons, earning_date " +
 					"FROM earning_events " +
 					"WHERE symbol_id = ? " +
-					"AND earning_date = ? " +
+					//"AND earning_date = ? " +
 					"AND quarter = ? ");		
 			
 			java.sql.Date dated = new java.sql.Date(date.getTime());
 			
 			st.setInt(1, symbol_id);
-			st.setDate(2, dated);
-			st.setString(3, qtr);
+			//st.setDate(2, dated);
+			st.setString(2, qtr);
 			
 			ResultSet rs = st.executeQuery();			
 			String op = "insert"; 
 			double dbcons = 99999; 
+			java.sql.Date earning_date = null;
 			while(rs.next())
 			{
 				dbcons = rs.getDouble(1);
-				if(DoubleUtil.Equals(cons, dbcons))
+				earning_date = rs.getDate(2);
+				if(DoubleUtil.Equals(cons, dbcons) &&
+						earning_date.equals(dated))
 				{
 					op = "nothing";
 				} else {
@@ -196,7 +211,8 @@ public class DailyUpdater {
 				insertNewEarningRecord(symbol_id, dated, qtr, cons);
 			} else if(op.equals("update"))
 			{
-				logger.info("Update Consensus number for "+symbol+" from "+dbcons+" to "+cons);
+				logger.info("Update Earning entry for "+symbol+" Cons: "+dbcons+" to "+cons+" Date: "+
+						dateFormatter.format(earning_date) + " to " +dateFormatter.format(dated));
 				updateConsForEarningRecord(symbol_id, dated, qtr, cons);
 			} else {
 				logger.info("No Operation Needed for "+symbol);
@@ -255,13 +271,13 @@ public class DailyUpdater {
 			= DatabaseAccessor.getInstance().prepareStatement(
 					"UPDATE earning_events " +
 					"SET cons = ? " +
+					",earning_date = ? " +					
 					"WHERE symbol_id = ? " +
-					"AND earning_date = ? " +
 					"AND quarter = ? ");
 			
-			st.setDouble(1, cons);			
-			st.setInt(2, symbol_id);
-			st.setDate(3, date);
+			st.setDouble(1, cons);	
+			st.setDate(2, date);
+			st.setInt(3, symbol_id);
 			st.setString(4, qtr);
 			
 			st.executeUpdate();

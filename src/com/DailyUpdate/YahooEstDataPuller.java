@@ -1,6 +1,5 @@
 package com.DailyUpdate;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
@@ -15,16 +14,16 @@ import org.jsoup.select.Elements;
 
 import com.QuoteRetriever.MyLogger;
 
-public class ZacksEarningDataPuller {
+public class YahooEstDataPuller {
 
-	private static String BaseURL = "http://www.zacks.com/stock/quote/SYMBOL/detailed-estimates";
+	private static String BaseURL = "http://biz.yahoo.com/research/earncal/a/SYMBOL.html";
 	private final MyLogger logger = MyLogger.getInstance();
 	private static final int RETRY_ATTEMPTS = 2;
 	private static final long RETRY_BACKOFF = 2000;	
 	
 	private static final SimpleDateFormat YahooDateFormatter = new SimpleDateFormat("yyyy-MM-dd");	
 	
-	public ZacksEarningDataPuller()
+	public YahooEstDataPuller()
 	{
 		
 	}
@@ -34,23 +33,32 @@ public class ZacksEarningDataPuller {
 		return BaseURL.replace("SYMBOL", symbol);
 	}
 
-	public boolean pullEarningsForSymbol(String symbol, EarningData earning){
+	public EarningData pullEarningsForSymbol(String symbol){
 		
 		String url = getUrlForSymbol(symbol);
 		//File input = new File("F:\\Temp\\amzn.html");		
 		boolean success = true;
 		int attempt = 0;
 		long backoff = 0;
+		EarningData earning = null;
 		
 		while(attempt < RETRY_ATTEMPTS)
 		{
 			try {
 				//Document doc = Jsoup.parse(input, "UTF-8");
 				Document doc = Jsoup.connect(url).timeout(10*1000).get();
+				
+				FileWriter fo = new FileWriter("F:\\Temp\\amzn.html");
+				PrintWriter pw = new PrintWriter(fo);
+
+				pw.println(doc);
+				
+				fo.close();
+				pw.close();
+				/*
 				Element detail = doc.select("#detail_estimate").get(0);
 				Elements ths = detail.getElementsByTag("th");				
 								
-				//System.out.println(doc);
 				
 				String date_str = ths.get(0).text();
 				String cons_str = ths.get(1).text();
@@ -60,7 +68,7 @@ public class ZacksEarningDataPuller {
 				String qtr_str = tds.get(0).text();
 				
 				if(qtr_str.equals("NA"))
-					return false;
+					return null;
 				
 				Pattern p = Pattern.compile("\\d{2}/\\d{4}");
 				Matcher m = p.matcher(qtr_str);
@@ -68,18 +76,14 @@ public class ZacksEarningDataPuller {
 				while(m.find())
 					qtr_str = m.group(0);
 				String[] splitted = qtr_str.split("/");
-				int quarter_num = (int) Math.round(Double.parseDouble(splitted[0])/3.0);
+				int quarter_num = Integer.parseInt(splitted[0])/3;
 				qtr_str = "Q"+quarter_num+splitted[1].substring(2);					
 				
 				SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yy");
 				Date date = dateFormat.parse(date_str);
 				
-				if(earning == null)
-					earning = new EarningData();
-				earning.quarter = qtr_str;
-				earning.earningDate = date;
-				
-				//System.out.println(qtr_str);
+				earning = new EarningData(qtr_str, date, Double.parseDouble(cons_str));
+				*/
 				
 			}catch (Exception e) {
 				logger.warning(e.toString());
@@ -90,7 +94,7 @@ public class ZacksEarningDataPuller {
 			if(!success)
 			{
 				attempt++;
-				logger.warning("[ZacksPuller] Failed to pull earnings data for symbol "+symbol+", retry and backoff. Attempt: "+attempt);				
+				logger.warning("Failed to pull earnings data for symbol "+symbol+", retry and backoff. Attempt: "+attempt);				
 				backoff += RETRY_BACKOFF;
 				try {
 					Thread.sleep(backoff);
@@ -98,15 +102,13 @@ public class ZacksEarningDataPuller {
 					e.printStackTrace();
 				}
 			}else{
-				logger.info("[ZacksPuller] Done pulling data for Symbol: "+symbol);
+				logger.info("Done Exporting Earning for Symbol: "+symbol);
 				break;
 			}
 		}				
-
-		if(attempt == RETRY_ATTEMPTS)
-			return false;
 		
-		return true;
+		return earning;
 	}
+	
 	
 }
