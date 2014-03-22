@@ -20,6 +20,14 @@ public class Position {
 	
 	public Earning earning;
 	
+	//ID used by the main Algo... cheating again here
+	public int id;
+	
+	public Position()
+	{
+		
+	}
+	
 	public Position(String symbol)
 	{
 		this.symbol = symbol;

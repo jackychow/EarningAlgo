@@ -40,10 +40,8 @@ public class DailyUpdater {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		//EarningData earning = null;
-		//EarningData earning = puller.pullEarningsForSymbol("TSLA");
 		DailyUpdater updater = new DailyUpdater();
-		updater.runUpdate();
+		updater.runUpdate();		
 		
 		/*
 		EarningData earning = null;

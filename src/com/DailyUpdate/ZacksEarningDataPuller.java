@@ -68,7 +68,7 @@ public class ZacksEarningDataPuller {
 				while(m.find())
 					qtr_str = m.group(0);
 				String[] splitted = qtr_str.split("/");
-				int quarter_num = (int) Math.round(Double.parseDouble(splitted[0])/3.0);
+				int quarter_num = (int) Math.ceil(Double.parseDouble(splitted[0])/3.0);
 				qtr_str = "Q"+quarter_num+splitted[1].substring(2);					
 				
 				SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yy");
