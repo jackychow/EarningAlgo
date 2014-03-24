@@ -1,5 +1,6 @@
 package com.DailyAlgo;
 
+import java.text.DecimalFormat;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -12,9 +13,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.joda.time.LocalDate;
 
+import com.AlgoSimulation.DoubleUtil;
+
 public class ExecutionUtil {
 
 	private Options options = new Options();
+	private DecimalFormat decimalFormatter = new DecimalFormat("#.##");
 	
 	public static void main(String[] args)
 	{
@@ -39,6 +43,7 @@ public class ExecutionUtil {
 					String symbol = cmd.getOptionValue("s");
 					String price = cmd.getOptionValue("p");
 					LocalDate date = LocalDate.now();
+					boolean adjust = cmd.hasOption("adjust");
 					if(cmd.hasOption("d"))
 					{
 						date = LocalDate.parse(cmd.getOptionValue("d"));
@@ -46,13 +51,13 @@ public class ExecutionUtil {
 					if(action.equals("open")) {
 						if(cmd.hasOption("n")){
 							String numShares = cmd.getOptionValue("n");
-							if(addPositions(symbol, Integer.parseInt(numShares), Double.parseDouble(price), date)){
+							if(addPositions(symbol, Integer.parseInt(numShares), Double.parseDouble(price), date, adjust)){
 								System.out.println("Add Position Successfully");
 							}
 							return;
 						}						
 					} else if(action.equals("close")) {
-						if(closePosition(symbol, Double.parseDouble(price), date))
+						if(closePosition(symbol, Double.parseDouble(price), date, adjust))
 						{
 							System.out.println("Successfully Closed Position");
 						}
@@ -89,14 +94,42 @@ public class ExecutionUtil {
 		}
 	}
 	
-	private boolean addPositions(String symbol, int numShares, double price, LocalDate date)
+	private boolean addPositions(String symbol, int numShares, double price, LocalDate date, boolean adjust)
 	{
-		return PositionAccessor.OpenNewPosition(symbol, numShares, price, date);
+		double diff = PositionAccessor.OpenNewPosition(symbol, numShares, price, date);
+		if(!DoubleUtil.EqualsZero(diff))
+		{
+			if(adjust)
+			{
+				String cash = AppPropertyValues.GetValueForProperty("cash");
+				double cashDbl = Double.parseDouble(cash);
+				cashDbl -= diff;
+				AppPropertyValues.SetAppPropertyValues("cash", decimalFormatter.format(cashDbl));
+			}
+			
+			return true;
+		}else{
+			return false;
+		}
 	}
 	
-	private boolean closePosition(String symbol, double price, LocalDate date)
+	private boolean closePosition(String symbol, double price, LocalDate date, boolean adjust)
 	{
-		return PositionAccessor.ClosePosition(symbol, price, date);
+		double diff = PositionAccessor.ClosePosition(symbol, price, date);
+		if(!DoubleUtil.EqualsZero(diff))
+		{
+			if(adjust)
+			{
+				String cash = AppPropertyValues.GetValueForProperty("cash");
+				double cashDbl = Double.parseDouble(cash);
+				cashDbl += diff;
+				AppPropertyValues.SetAppPropertyValues("cash", decimalFormatter.format(cashDbl));
+			}
+			
+			return true;
+		}else{
+			return false;
+		}		
 	}
 	
 	private void listPropertyValues(String prop)
@@ -142,6 +175,7 @@ public class ExecutionUtil {
 		.hasArg().withDescription("The Name of Property").create("name");
 		Option value = OptionBuilder.withArgName("Property Value")
 		.hasArg().withDescription("The Value for the Property").create("value");
+		Option adjust = new Option("adjust", "adjust cash also when adjusting positions");
 		
 		
 		options.addOption(position);
@@ -152,6 +186,12 @@ public class ExecutionUtil {
 		options.addOption(propval);
 		options.addOption(property);
 		options.addOption(value);
+		options.addOption(adjust);
+		
+	}
+	
+	private void adjustCash(double amount)
+	{
 		
 	}
 	

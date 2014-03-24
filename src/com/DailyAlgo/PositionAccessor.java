@@ -56,7 +56,7 @@ public class PositionAccessor {
 		return positions;
 	}
 	
-	public static boolean OpenNewPosition(String symbol, int numShares, double price, LocalDate date)
+	public static double OpenNewPosition(String symbol, int numShares, double price, LocalDate date)
 	{
 		int id = db.getIdForSymbol(symbol);
 		PreparedStatement st = db.prepareStatement(
@@ -74,12 +74,12 @@ public class PositionAccessor {
 			if(updated == 0){
 				logger.warning("[ERROR] Failed to open new position for symbol "+symbol);
 				st.close();
-				return false;
+				return 0.0;
 			}
 			
 		} catch (SQLException e) {
 			logger.warning("[ERROR] Failed to open new position for symbol "+symbol+e.getMessage());
-			return false;
+			return 0.0;
 		}finally{
 			try {
 				st.close();
@@ -88,17 +88,33 @@ public class PositionAccessor {
 			}
 		}
 				
-		return true;
+		return ((double)numShares)*price;
 	}
 	
-	public static boolean ClosePosition(String symbol, double price, LocalDate date)
+	public static double ClosePosition(String symbol, double price, LocalDate date)
 	{
 		int id = db.getIdForSymbol(symbol);
-		PreparedStatement st = db.prepareStatement(
-				"update positions set close_date = ?, sell_price = ?, active=-1 " +
-				"where symbol_id = ? and active = 1");
+		int numShares = 0;
 		
-		try{
+		PreparedStatement st = db.prepareStatement("select sum(num_shares) from positions where symbol_id = ? and active = 1");				
+		
+		try{ 
+			st.setInt(1, id);
+			
+			ResultSet rs = st.executeQuery();
+			while(rs.next())
+			{
+				numShares = rs.getInt(1);
+			}
+			
+			rs.close();
+			st.close();			
+			
+			st = db.prepareStatement(
+					"update positions set close_date = ?, sell_price = ?, active=-1 " +
+					"where symbol_id = ? and active = 1");
+			
+			
 			st.setDate(1, new java.sql.Date(date.toDateTimeAtStartOfDay().toDate().getTime()));
 			st.setDouble(2, price);
 			st.setInt(3, id);
@@ -108,7 +124,7 @@ public class PositionAccessor {
 			if(updated == 0){
 				logger.warning("[ERROR] Failed to close position with symbol "+symbol);
 				st.close();
-				return false;				
+				return 0.0;				
 			}			
 			
 		} catch (SQLException e) {
@@ -121,7 +137,8 @@ public class PositionAccessor {
 			}			
 		}				
 						
-		return true;
+		return ((double)numShares)*price;
 	}	
 	
+	//public static List<Position> getActivePositionsForSymbol
 }

@@ -41,13 +41,32 @@ public class DailyReportWriter {
 		writer = new PrintWriter(fo);
 	}	
 	
-	public void printTodaySummary(LocalDate today)
+	public void printTodaySummary(LocalDate today, DailyStateLoader loader)
 	{
 		StringBuilder sb = new StringBuilder();
+		int[] trailingRangeForBuy = loader.getTrailingRangeForBuy();
+		int trailingDayForSell = loader.getTrailingDayForSell();		
+		double minAllocation = loader.getMinAllocation();
+		double maxAllocation = loader.getMaxAllocation();		
+		double cash = loader.getCash();
+		double brokageFee = loader.getBrokageFee();
+		
 		sb.append("========= Summary For ");
 		sb.append(today.toString("yyyy-MM-dd"));
 		sb.append(" =========\n");
-		sb.append("========= End Of Summary =========");
+		sb.append("Cash Available: "+cash);
+		sb.append(" MinAlloc: "+minAllocation);
+		sb.append(" MaxAlloc: "+maxAllocation);
+		sb.append(" Brokage Fee: "+brokageFee);
+		sb.append("\n");
+		sb.append("trailing Buy Start: ");
+		sb.append(trailingRangeForBuy[0]);		
+		sb.append(" trailing Buy End: ");
+		sb.append(trailingRangeForBuy[1]);
+		sb.append(" trailing Sell: ");
+		sb.append(trailingDayForSell);
+		sb.append("\n");
+		sb.append("========= End Of Summary =========");		
 		writer.println(sb.toString());
 	}
 	

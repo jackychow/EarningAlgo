@@ -68,6 +68,7 @@ public class FixedPeriodAheadDailyAlgo {
 			logger.warning("Failed to open report file");
 		}		
 		
+		writer.printTodaySummary(today, loader);
 		List<Position> candidates = new LinkedList<Position>(positions.values());
 		List<Position> toSell = new LinkedList<Position>();
 		for(ISellDecision sellDecision : sellDecisions)
